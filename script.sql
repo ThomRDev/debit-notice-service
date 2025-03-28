@@ -356,7 +356,8 @@ BEGIN
             resultado := jsonb_set(resultado, '{success}', resultado->'success' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
-                    'from', aviso.estado, 
+                    'from', aviso.estado,
+                    'numero_aviso', aviso.numero_aviso,
                     'to', estado_final, 
                     'mensaje', 'Cambio de estado permitido'
                 )));
@@ -366,6 +367,7 @@ BEGIN
                     'id', aviso.id, 
                     'from', aviso.estado, 
                     'to', estado_final, 
+                    'numero_aviso', aviso.numero_aviso,
                     'mensaje', 'Cambio de estado no permitido'
                 )));
         END IF;

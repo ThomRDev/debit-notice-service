@@ -61,18 +61,17 @@ class DebitNoticeService {
     }
 
     if (estado_final === "MIGRADO") {
-      const successIds = stateValidation.rows[0].success.map((item) => item.id);
+      const successIds = stateValidation.rows[0].success.map((item) => item.numero_aviso);
 
-      // TODO: mock de esto
-      const sapResponse = await fetch("http://sap.com/api/migrar", {
+      const sapResponse = await fetch("https://sap.com/api/migrar", {
         method: "POST",
-        body: JSON.stringify({ ids: successIds }),
+        body: JSON.stringify(successIds),
       });
       const sapResponseData = await sapResponse.json();
 
       stateValidation.rows[0].success.forEach((item) => {
         item.numero_sap = sapResponseData.find(
-          (sap) => sap.id === item.id
+          (sap) => sap.numero_aviso === item.numero_aviso
         ).numero_sap;
       });
     }
