@@ -287,6 +287,59 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_search_solicitudes_anticipo(
+    p_numero_solicitud TEXT DEFAULT NULL,
+    p_page INTEGER DEFAULT 1,
+    p_page_size INTEGER DEFAULT 10
+)RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+    v_offset INTEGER;
+    v_total_records INTEGER;
+BEGIN   
+    v_offset := (p_page - 1) * p_page_size;
+
+    WITH filtered_data AS (
+        SELECT *
+        FROM SolicitudAnticipo
+        WHERE p_numero_solicitud IS NULL OR numero_solicitud = p_numero_solicitud
+    )
+    SELECT jsonb_build_object(
+        'total_count', (SELECT COUNT(*) FROM filtered_data),
+        'current_page', p_page,
+        'page_size', p_page_size,
+        'data', (
+            SELECT jsonb_agg(
+                jsonb_build_object(
+                    'id', sa.id,
+                    'id_cliente', sa.id_cliente,
+                    'numero_solicitud', sa.numero_solicitud,
+                    'fecha_solicitud', sa.fecha_solicitud,
+                    'solicitante', sa.solicitante,
+                    'importe', sa.importe,
+                    'moneda', sa.moneda,
+                    'motivo', sa.motivo,
+                    'estado', sa.estado
+                )
+            )
+            FROM (
+                SELECT *
+                FROM filtered_data
+                ORDER BY fecha_solicitud DESC
+                LIMIT p_page_size OFFSET v_offset
+            ) sa
+        )
+    ) INTO result;
+
+    RETURN COALESCE(result, jsonb_build_object(
+    'total_count', 0,
+    'current_page', p_page,
+    'page_size', p_page_size,
+    'data', '[]'::jsonb
+	));
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION validar_cambio_estado_avisos(
     avisos_ids INTEGER[], 
     estado_final TEXT

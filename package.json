@@ -13,6 +13,7 @@
   "dependencies": {
     "compression": "^1.8.0",
     "cors": "^2.8.5",
+    "debit-notice-service": "file:",
     "dotenv": "^16.4.7",
     "env-var": "^7.5.0",
     "express": "^4.21.2",
