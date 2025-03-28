@@ -39,6 +39,11 @@ class DebitNoticeService {
     return result.rows[0].search_aviso_debito;
   }
 
+  static async getDebitNoticeByNumberAviso(numberAviso) {
+    const result = await db.getPool().query("SELECT * FROM get_detail_aviso_debito($1)", [numberAviso || '']);
+    return result.rows[0];
+  }
+
   static async changeState(body) {
     const { avisos, estado_final, usuario_modificador } = body;
 

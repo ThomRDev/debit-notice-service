@@ -420,5 +420,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE FUNCTION get_detail_aviso_debito(
+    p_numero_aviso TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    aviso_completo JSONB;
+    detalle_aviso_debito JSONB;
+    result JSONB;
+BEGIN
+    SELECT row_to_json(aviso)::JSONB 
+    INTO aviso_completo
+    FROM (
+        SELECT a.*, u.nombre AS usuario_modificador, c.nombre AS cliente
+        FROM AvisoDebito a
+        JOIN Usuario u ON a.id_usuario_modificador = u.id
+        JOIN Cliente c ON a.id_cliente = c.id
+        WHERE a.numero_aviso = p_numero_aviso
+    ) aviso;
 
+    SELECT COALESCE(jsonb_agg(row_to_json(d)), '[]'::JSONB) 
+    INTO detalle_aviso_debito 
+    FROM ( 
+        SELECT * FROM DetalleAvisoDebito 
+        WHERE id_aviso_debito = (aviso_completo->>'id')::INT 
+    ) d;
+
+    SELECT jsonb_build_object(
+        'aviso_debito', aviso_completo,
+        'detalle_aviso_debito', detalle_aviso_debito
+    ) INTO result;
+    
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
 
