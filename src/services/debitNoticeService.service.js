@@ -20,23 +20,23 @@ class DebitNoticeService {
     const result = await db
       .getPool()
       .query(
-        "SELECT * FROM search_aviso_debito($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+        "SELECT * FROM search_aviso_debito($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         [
-          numero_aviso,
-          estado,
-          numero_sap,
-          usuario_creador,
-          email_usuario_creador,
-          fecha_inicio,
-          fecha_fin,
-          nombre_cliente,
-          ruc_cliente,
-          moneda,
-          importe_min,
-          importe_max,
+          numero_aviso || null,
+          estado || null,
+          numero_sap || null,
+          usuario_creador || null,
+          email_usuario_creador || null,
+          fecha_inicio || null,
+          fecha_fin || null,
+          nombre_cliente || null,
+          ruc_cliente || null,
+          moneda || null,
+          importe_min || null,
+          importe_max || null,
         ]
       );
-    return result.rows;
+    return result.rows[0].search_aviso_debito;
   }
 
   static async changeState(body) {
