@@ -287,41 +287,72 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
-CREATE OR REPLACE FUNCTION procesar_avisos(
-    arr_aviso_ids INTEGER[], 
-    nuevo_estado TEXT, 
-    p_usuario_id INTEGER
-) RETURNS JSONB AS $$
+CREATE OR REPLACE FUNCTION validar_cambio_estado_avisos(
+    avisos_ids INTEGER[], 
+    estado_final TEXT
+) RETURNS JSON AS $$
 DECLARE
     aviso RECORD;
-    resultado JSONB := '{"success": [], "errors": []}'::JSONB;
+    resultado JSONB := jsonb_build_object('success', '[]', 'errors', '[]');
 BEGIN
-    FOR aviso IN 
-        SELECT id, estado FROM AvisoDebito WHERE id = ANY(arr_aviso_ids) 
-    LOOP
-        IF (UPPER(aviso.estado) = 'BORRADOR' AND UPPER(nuevo_estado) NOT IN ('PENDIENTE', 'ANULADO')) OR
-           (UPPER(aviso.estado) = 'PENDIENTE' AND UPPER(nuevo_estado) NOT IN ('MIGRADO', 'ANULADO')) OR
-           (UPPER(aviso.estado) IN ('MIGRADO', 'ANULADO')) THEN
-            resultado := jsonb_set(resultado, '{errors}', 
-                resultado->'errors' || jsonb_build_object('id', aviso.id, 'mensaje', 
-                format('No se puede cambiar de %s a %s', aviso.estado, nuevo_estado))
-            );
+    FOR aviso IN SELECT id, estado FROM AvisoDebito WHERE id = ANY(avisos_ids) LOOP
+        IF (aviso.estado = 'BORRADOR' AND estado_final IN ('PENDIENTE', 'ANULADO')) OR
+           (aviso.estado = 'PENDIENTE' AND estado_final IN ('MIGRADO', 'ANULADO')) OR
+           (aviso.estado = 'MIGRADO' AND estado_final = 'ANULADO') THEN
+           
+            resultado := jsonb_set(resultado, '{success}', resultado->'success' || 
+                to_jsonb(jsonb_build_object(
+                    'id', aviso.id, 
+                    'from', aviso.estado, 
+                    'to', estado_final, 
+                    'mensaje', 'Cambio de estado permitido'
+                )));
         ELSE
-            UPDATE AvisoDebito 
-            SET estado = UPPER(nuevo_estado), 
-                id_usuario_modificador = p_usuario_id, 
-                fecha_modificacion = NOW()
-            WHERE id = aviso.id;
-            
-            resultado := jsonb_set(resultado, '{success}', 
-                resultado->'success' || jsonb_build_object('id', aviso.id, 'mensaje', 
-                format('El aviso %s pasó de %s a %s', aviso.id, aviso.estado, nuevo_estado))
-            );
+            resultado := jsonb_set(resultado, '{errors}', resultado->'errors' || 
+                to_jsonb(jsonb_build_object(
+                    'id', aviso.id, 
+                    'from', aviso.estado, 
+                    'to', estado_final, 
+                    'mensaje', 'Cambio de estado no permitido'
+                )));
         END IF;
     END LOOP;
 
     RETURN resultado;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION actualizar_estado_avisos(
+    avisos JSONB, 
+    estado_final TEXT,
+    usuario_modificador INTEGER
+) RETURNS VOID AS $$
+DECLARE
+    aviso JSONB;
+    aviso_id INTEGER;
+    numero_sap TEXT;
+BEGIN
+    FOR aviso IN SELECT * FROM jsonb_array_elements(avisos) LOOP
+        aviso_id := (aviso->>'id')::INTEGER;
+        numero_sap := aviso->>'numero_sap';
+
+        IF aviso_id IS NULL OR numero_sap IS NULL THEN
+            RAISE EXCEPTION 'Datos inválidos en el JSON: %', aviso;
+        END IF;
+
+        UPDATE AvisoDebito 
+        SET estado = estado_final, 
+            numero_sap = numero_sap,
+            fecha_modificacion = NOW(),
+            id_usuario_modificador = usuario_modificador
+        WHERE id = aviso_id;
+
+        INSERT INTO LogAvisoDebito(id_aviso, fecha_gestion, usuario_gestion, estado)
+        VALUES (aviso_id, NOW(), usuario_modificador, estado_final);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
