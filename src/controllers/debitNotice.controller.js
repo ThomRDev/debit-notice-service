@@ -1,8 +1,16 @@
-const db = require("../config/database");
+const { DebitNoticeService } = require("../services/debitNoticeService.service");
 
 class DebitNoticeController {
+
+
   static getDebitNotice(req, res) {
-    return db.getPool().query('SELECT * FROM cliente').then(result => res.json(result.rows));
+    return DebitNoticeService.getAll()
+      .then(result => {
+        return res.json(result);
+      })
+      .catch(error => {
+        return res.status(500).json({ error: error.message });
+      });
   }
 }
 
