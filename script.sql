@@ -286,3 +286,42 @@ BEGIN
     RETURN COALESCE(result, '[]'::jsonb);
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION procesar_avisos(
+    arr_aviso_ids INTEGER[], 
+    nuevo_estado TEXT, 
+    p_usuario_id INTEGER
+) RETURNS JSONB AS $$
+DECLARE
+    aviso RECORD;
+    resultado JSONB := '{"success": [], "errors": []}'::JSONB;
+BEGIN
+    FOR aviso IN 
+        SELECT id, estado FROM AvisoDebito WHERE id = ANY(arr_aviso_ids) 
+    LOOP
+        IF (UPPER(aviso.estado) = 'BORRADOR' AND UPPER(nuevo_estado) NOT IN ('PENDIENTE', 'ANULADO')) OR
+           (UPPER(aviso.estado) = 'PENDIENTE' AND UPPER(nuevo_estado) NOT IN ('MIGRADO', 'ANULADO')) OR
+           (UPPER(aviso.estado) IN ('MIGRADO', 'ANULADO')) THEN
+            resultado := jsonb_set(resultado, '{errors}', 
+                resultado->'errors' || jsonb_build_object('id', aviso.id, 'mensaje', 
+                format('No se puede cambiar de %s a %s', aviso.estado, nuevo_estado))
+            );
+        ELSE
+            UPDATE AvisoDebito 
+            SET estado = UPPER(nuevo_estado), 
+                id_usuario_modificador = p_usuario_id, 
+                fecha_modificacion = NOW()
+            WHERE id = aviso.id;
+            
+            resultado := jsonb_set(resultado, '{success}', 
+                resultado->'success' || jsonb_build_object('id', aviso.id, 'mensaje', 
+                format('El aviso %s pasó de %s a %s', aviso.id, aviso.estado, nuevo_estado))
+            );
+        END IF;
+    END LOOP;
+
+    RETURN resultado;
+END;
+$$ LANGUAGE plpgsql;
+
