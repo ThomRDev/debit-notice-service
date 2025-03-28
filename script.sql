@@ -33,7 +33,7 @@ CREATE TABLE AvisoDebito (
     numero_aviso VARCHAR(50) UNIQUE,
     fecha_emision DATE,
     importe_total NUMERIC(15,2),
-    estado VARCHAR(20) CHECK (estado IN ('BORRADOR', 'PENDIENTE', 'ANULADO', 'APROBADO', 'MIGRADO')),
+    estado VARCHAR(20) CHECK (estado IN ('BORRADOR', 'PENDIENTE', 'ANULADO', 'MIGRADO')),
     numero_sap VARCHAR(50),
     condicion_pago VARCHAR(100),
     id_usuario_creador INTEGER,
