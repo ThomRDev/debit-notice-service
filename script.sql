@@ -115,3 +115,77 @@ INSERT INTO SolicitudAnticipo (
 (4, 'ANT-2025-012', '2025-05-16', 'Carmen Mendoza', 780.00, 'PEN', 'Consultoría', 'PENDIENTE'),
 (4, 'ANT-2025-013', '2025-05-24', 'Javier Ríos', 900.00, 'PEN', 'Evento Internacional', 'APROBADO'),
 (5, 'ANT-2025-014', '2025-06-02', 'Lucía Mendez', 400.00, 'PEN', 'Papelería', 'PENDIENTE');
+
+CREATE OR REPLACE FUNCTION search_aviso_debito(
+    p_numero_aviso TEXT DEFAULT NULL,
+    p_estado TEXT DEFAULT NULL,
+    p_numero_sap TEXT DEFAULT NULL,
+    p_usuario_creador TEXT DEFAULT NULL,
+    p_email_usuario_creador TEXT DEFAULT NULL,
+    p_fecha_desde DATE DEFAULT NULL,
+    p_fecha_hasta DATE DEFAULT NULL,
+    p_nombre_cliente TEXT DEFAULT NULL,
+    p_ruc_cliente TEXT DEFAULT NULL,
+    p_moneda TEXT DEFAULT NULL,
+    p_importe_min NUMERIC DEFAULT NULL,
+    p_importe_max NUMERIC DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT jsonb_agg(row_to_json(t)) INTO result
+    FROM (
+        SELECT 
+            a.numero_aviso, 
+            a.estado, 
+            a.numero_sap, 
+            u.nombre AS usuario_creador,
+            u.email AS email_usuario_creador,
+            c.nombre AS cliente,
+            c.ruc AS ruc_cliente,
+            a.moneda,
+            a.importe_total,
+            a.fecha_emision
+        FROM AvisoDebito a
+        JOIN Cliente c ON a.id_cliente = c.id
+        JOIN Usuario u ON a.id_usuario_creador = u.id
+        WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
+          AND (p_estado IS NULL OR a.estado = p_estado)
+          AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
+          AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
+          AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
+          AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
+          AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
+          AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
+          AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
+          AND (p_moneda IS NULL OR a.moneda = p_moneda)
+          AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
+          AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
+    ) t;
+
+    RETURN COALESCE(result, '[]'::jsonb);
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_clientes_info(
+    p_nombre_cliente TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    result JSONB;
+BEGIN
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'id', c.id,
+            'nombre', c.nombre,
+            'ruc', c.ruc,
+            'direccion', c.direccion,
+            'contacto', c.contacto
+        )
+    ) INTO result
+    FROM Cliente c
+    WHERE c.nombre ILIKE '%' || p_nombre_cliente || '%';
+
+    RETURN COALESCE(result, '[]'::jsonb);
+END;
+$$ LANGUAGE plpgsql;
