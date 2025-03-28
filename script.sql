@@ -300,9 +300,10 @@ BEGIN
     v_offset := (p_page - 1) * p_page_size;
 
     WITH filtered_data AS (
-        SELECT *
-        FROM SolicitudAnticipo
-        WHERE p_numero_solicitud IS NULL OR numero_solicitud = p_numero_solicitud
+        SELECT s.*, c.nombre as nombre_cliente
+        FROM SolicitudAnticipo s
+        LEFT JOIN Cliente c ON s.id_cliente = c.id
+        WHERE p_numero_solicitud IS NULL OR s.numero_solicitud = p_numero_solicitud
     )
     SELECT jsonb_build_object(
         'total_count', (SELECT COUNT(*) FROM filtered_data),
