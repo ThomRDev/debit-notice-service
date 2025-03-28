@@ -50,7 +50,7 @@ class DebitNoticeService {
         usuario_modificador,
       ]);
 
-    const allErrors = stateValidation.rows[0].errors.length <= 0;
+    const allErrors = stateValidation.rows[0].success.length <= 0;
     if (!allErrors) {
       throw new Error("No se puede cambiar el estado");
     }
