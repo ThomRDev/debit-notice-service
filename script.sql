@@ -337,22 +337,35 @@ BEGIN
         aviso_id := (aviso->>'id')::INTEGER;
         numero_sap := aviso->>'numero_sap';
 
-        IF aviso_id IS NULL OR numero_sap IS NULL THEN
+        IF aviso_id IS NULL THEN
             RAISE EXCEPTION 'Datos inválidos en el JSON: %', aviso;
         END IF;
 
-        UPDATE AvisoDebito 
-        SET estado = estado_final, 
-            numero_sap = numero_sap,
-            fecha_modificacion = NOW(),
-            id_usuario_modificador = usuario_modificador
-        WHERE id = aviso_id;
+        IF estado_final = 'MIGRADO' THEN
+            IF numero_sap IS NULL THEN
+                RAISE EXCEPTION 'El número SAP es obligatorio cuando el estado es MIGRADO para el aviso %', aviso_id;
+            END IF;
+
+            UPDATE AvisoDebito 
+            SET estado = estado_final, 
+                numero_sap = numero_sap,
+                fecha_modificacion = NOW(),
+                id_usuario_modificador = usuario_modificador
+            WHERE id = aviso_id;
+        ELSE
+            UPDATE AvisoDebito 
+            SET estado = estado_final, 
+                fecha_modificacion = NOW(),
+                id_usuario_modificador = usuario_modificador
+            WHERE id = aviso_id;
+        END IF;
 
         INSERT INTO LogAvisoDebito(id_aviso, fecha_gestion, usuario_gestion, estado)
         VALUES (aviso_id, NOW(), usuario_modificador, estado_final);
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 
