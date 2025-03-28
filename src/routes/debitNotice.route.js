@@ -7,6 +7,7 @@ class DebitNoticeRoutes {
   static get routes() {
     const router = Router();
     router.get('/', DebitNoticeController.getDebitNotice);
+    router.put('/change-state', DebitNoticeController.changeState);
     return router;
   }
 }

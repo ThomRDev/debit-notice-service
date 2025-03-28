@@ -220,7 +220,7 @@ BEGIN
         JOIN Cliente c ON a.id_cliente = c.id
         JOIN Usuario u ON a.id_usuario_creador = u.id
         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR a.estado = p_estado)
+          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado) -- Comparación con 'todos' en minúsculas
           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
           AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
@@ -228,7 +228,7 @@ BEGIN
           AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
           AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
           AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
-          AND (p_moneda IS NULL OR a.moneda = p_moneda)
+          AND (p_moneda IS NULL OR LOWER(p_moneda) = 'todas' OR a.moneda = p_moneda) -- Comparación con 'todas' en minúsculas
           AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
           AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
     ) t;
