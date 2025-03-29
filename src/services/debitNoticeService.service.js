@@ -75,9 +75,8 @@ class DebitNoticeService {
       throw new Error("No se puede cambiar el estado");
     }
 
+    const successIds = stateValidation.rows[0].success.map((item) => item.numero_aviso);
     if (estado_final === "MIGRADO") {
-      const successIds = stateValidation.rows[0].success.map((item) => item.numero_aviso);
-
       const sapResponse = await fetch("https://sap.com/api/migrar", {
         method: "POST",
         body: JSON.stringify(successIds),
@@ -90,6 +89,14 @@ class DebitNoticeService {
         ).numero_sap;
       });
     }
+
+    if (estado_final === "ANULADO") {
+      await fetch("https://sap.com/api/anular", {
+        method: "POST",
+        body: JSON.stringify(successIds),
+      });
+    }
+
     await db
       .getPool()
       .query("SELECT * FROM actualizar_estado_avisos($1, $2, $3)", [

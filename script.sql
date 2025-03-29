@@ -411,17 +411,30 @@ CREATE OR REPLACE FUNCTION validar_cambio_estado_avisos(
 DECLARE
     aviso RECORD;
     resultado JSONB := jsonb_build_object('success', '[]', 'errors', '[]');
+    estados_validos TEXT[] := ARRAY['BORRADOR', 'PENDIENTE', 'MIGRADO', 'ANULADO'];
 BEGIN
+    IF estado_final NOT IN (SELECT UNNEST(estados_validos)) THEN
+        RAISE EXCEPTION 'Estado final inválido: %', estado_final;
+    END IF;
+
     FOR aviso IN SELECT id, estado FROM AvisoDebito WHERE id = ANY(avisos_ids) LOOP
-        IF (aviso.estado = 'BORRADOR' AND estado_final IN ('PENDIENTE', 'ANULADO')) OR
-           (aviso.estado = 'PENDIENTE' AND estado_final IN ('MIGRADO', 'ANULADO')) OR
-           (aviso.estado = 'MIGRADO' AND estado_final = 'ANULADO') THEN
+        IF aviso.estado = 'ANULADO' THEN
+            resultado := jsonb_set(resultado, '{errors}', resultado->'errors' || 
+                to_jsonb(jsonb_build_object(
+                    'id', aviso.id, 
+                    'from', aviso.estado,
+                    'numero_aviso', aviso.numero_aviso, 
+                    'to', estado_final, 
+                    'mensaje', 'No se puede cambiar el estado de un aviso anulado'
+                )));
+        ELSIF (aviso.estado = 'BORRADOR' AND estado_final = 'PENDIENTE') OR
+              (aviso.estado = 'PENDIENTE' AND estado_final = 'MIGRADO') OR
+              (aviso.estado = 'MIGRADO' AND estado_final = 'ANULADO') THEN
            
             resultado := jsonb_set(resultado, '{success}', resultado->'success' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
                     'from', aviso.estado,
-                    'numero_aviso', aviso.numero_aviso,
                     'to', estado_final, 
                     'mensaje', 'Cambio de estado permitido'
                 )));
@@ -431,7 +444,6 @@ BEGIN
                     'id', aviso.id, 
                     'from', aviso.estado, 
                     'to', estado_final, 
-                    'numero_aviso', aviso.numero_aviso,
                     'mensaje', 'Cambio de estado no permitido'
                 )));
         END IF;
@@ -440,6 +452,7 @@ BEGIN
     RETURN resultado;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 CREATE OR REPLACE FUNCTION actualizar_estado_avisos(
@@ -460,7 +473,7 @@ BEGIN
             RAISE EXCEPTION 'Datos inválidos en el JSON: %', aviso;
         END IF;
 
-        IF estado_final = 'MIGRADO' THEN
+        IF estado_final IN ('MIGRADO')  THEN
             IF numero_sap IS NULL THEN
                 RAISE EXCEPTION 'El número SAP es obligatorio cuando el estado es MIGRADO para el aviso %', aviso_id;
             END IF;

@@ -18,6 +18,17 @@ const handlers = [
       })),
     });
   }),
+  http.post("https://sap.com/api/anular", async ({ request }) => {
+    const anulaciones = await request.json();
+    if (!Array.isArray(anulaciones)) {
+      return new HttpResponse(
+        JSON.stringify({ error: "Invalid input, expected an array" }),
+        { status: 400 }
+      );
+    }
+
+    return HttpResponse.json({ ok: true }, { status: 200 });
+  }),
 ];
 
 
