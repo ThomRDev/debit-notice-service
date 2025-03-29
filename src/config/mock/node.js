@@ -1,4 +1,8 @@
-const handlers = require('./handlers')
+const { handlers } = require('./handlers')
 const { setupServer } = require('msw/node')
 
-export const server = setupServer(...handleRequest)
+const server = setupServer(...handlers)
+
+module.exports = {
+  server
+}

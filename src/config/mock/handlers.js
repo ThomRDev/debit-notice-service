@@ -1,9 +1,9 @@
 const { http, HttpResponse } = require("msw");
 
-export const generateSevenDigitNumber = () => {
+const generateSevenDigitNumber = () => {
   return Math.floor(1000000 + Math.random() * 9000000);
 };
-export const handlers = [
+const handlers = [
   http.post("https://sap.com/api/migrar", async ({ request }) => {
     const migrations = await request.json();
 
@@ -19,3 +19,9 @@ export const handlers = [
     });
   }),
 ];
+
+
+module.exports = {
+  generateSevenDigitNumber,
+  handlers
+}

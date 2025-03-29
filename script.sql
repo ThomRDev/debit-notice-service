@@ -31,7 +31,7 @@ CREATE TABLE AvisoDebito (
     moneda VARCHAR(10),
     tipo_cambio_moneda NUMERIC(10,4),
     numero_aviso VARCHAR(50) UNIQUE,
-    fecha_emision DATE,
+    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     importe_total NUMERIC(15,2),
     estado VARCHAR(20) CHECK (estado IN ('BORRADOR', 'PENDIENTE', 'ANULADO', 'MIGRADO')),
     numero_sap VARCHAR(50),
@@ -115,6 +115,69 @@ INSERT INTO SolicitudAnticipo (
 (4, 'ANT-2025-012', '2025-05-16', 'Carmen Mendoza', 780.00, 'PEN', 'Consultoría', 'PENDIENTE'),
 (4, 'ANT-2025-013', '2025-05-24', 'Javier Ríos', 900.00, 'PEN', 'Evento Internacional', 'APROBADO'),
 (5, 'ANT-2025-014', '2025-06-02', 'Lucía Mendez', 400.00, 'PEN', 'Papelería', 'PENDIENTE');
+
+
+INSERT INTO AvisoDebito(
+    id_cliente,
+    moneda,
+    tipo_cambio_moneda,
+    numero_aviso,
+    fecha_emision,
+    importe_total,
+    estado,
+    numero_sap,
+    condicion_pago,
+    id_usuario_creador,
+    id_usuario_modificador,
+    fecha_creation,
+    fecha_modificacion,
+    observaciones
+) VALUES (
+    1,
+    'PEN',
+    3.57,
+    'AD-0001',
+    NOW(),
+    850.00,
+    'PENDIENTE',
+    '1234567890',
+    'CONTADO',
+    1,
+    1,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+), (
+    1,
+    'PEN',
+    3.57,
+    'AD-0002',
+    NOW(),
+    500.00,
+    'BORRADOR',
+    '1234567890',
+    'CONTADO',
+    1,
+    NULL,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+), (
+    2,
+    'PEN',
+    3.57,
+    'AD-0003',
+    NOW(),
+    750.00,
+    'MIGRADO',
+    '1234567890',
+    'CONTADO',
+    2,
+    2,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+);
 
 CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
     p_numero_aviso TEXT DEFAULT NULL,
