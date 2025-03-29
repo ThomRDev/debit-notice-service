@@ -17,21 +17,6 @@ class DebitNoticeService {
       importe_max,
     } = params;
 
-    console.log({
-      numero_aviso,
-      estado,
-      numero_sap,
-      usuario_creador,
-      email_usuario_creador,
-      fecha_inicio,
-      fecha_fin,
-      nombre_cliente,
-      ruc_cliente,
-      moneda,
-      importe_min,
-      importe_max
-    })
-
     const result = await db
       .getPool()
       .query(
@@ -55,7 +40,9 @@ class DebitNoticeService {
   }
 
   static async getDebitNoticeByNumberAviso(numberAviso) {
-    const result = await db.getPool().query("SELECT * FROM get_detail_aviso_debito($1)", [numberAviso || '']);
+    const result = await db
+      .getPool()
+      .query("SELECT * FROM get_detail_aviso_debito($1)", [numberAviso || ""]);
     return result.rows[0];
   }
 
@@ -72,10 +59,12 @@ class DebitNoticeService {
 
     const allErrors = stateValidation.rows[0].success.length <= 0;
     if (!allErrors) {
-      throw new Error("No se puede cambiar el estado");
+      return stateValidation.rows[0]
     }
 
-    const successIds = stateValidation.rows[0].success.map((item) => item.numero_aviso);
+    const successIds = stateValidation.rows[0].success.map(
+      (item) => item.numero_aviso
+    );
     if (estado_final === "MIGRADO") {
       const sapResponse = await fetch("https://sap.com/api/migrar", {
         method: "POST",
