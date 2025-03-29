@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE TABLE Cliente (
     id SERIAL PRIMARY KEY,
     ruc VARCHAR(20) NOT NULL,
@@ -179,74 +180,74 @@ INSERT INTO AvisoDebito(
     'Observaciones del aviso de débito'
 );
 
-CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
-    p_numero_aviso TEXT DEFAULT NULL,
-    p_estado TEXT DEFAULT NULL,
-    p_numero_sap TEXT DEFAULT NULL,
-    p_usuario_creador TEXT DEFAULT NULL,
-    p_email_usuario_creador TEXT DEFAULT NULL,
-    p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL,
-    p_nombre_cliente TEXT DEFAULT NULL,
-    p_ruc_cliente TEXT DEFAULT NULL,
-    p_moneda TEXT DEFAULT NULL,
-    p_importe_min NUMERIC DEFAULT NULL,
-    p_importe_max NUMERIC DEFAULT NULL,
-    p_page INTEGER DEFAULT 1,
-    p_page_size INTEGER DEFAULT 10
-) RETURNS JSONB AS $$
-DECLARE
-    result JSONB;
-    v_offset INTEGER;
-BEGIN
-    v_offset := (p_page - 1) * p_page_size;
+-- CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
+--     p_numero_aviso TEXT DEFAULT NULL,
+--     p_estado TEXT DEFAULT NULL,
+--     p_numero_sap TEXT DEFAULT NULL,
+--     p_usuario_creador TEXT DEFAULT NULL,
+--     p_email_usuario_creador TEXT DEFAULT NULL,
+--     p_fecha_desde DATE DEFAULT NULL,
+--     p_fecha_hasta DATE DEFAULT NULL,
+--     p_nombre_cliente TEXT DEFAULT NULL,
+--     p_ruc_cliente TEXT DEFAULT NULL,
+--     p_moneda TEXT DEFAULT NULL,
+--     p_importe_min NUMERIC DEFAULT NULL,
+--     p_importe_max NUMERIC DEFAULT NULL,
+--     p_page INTEGER DEFAULT 1,
+--     p_page_size INTEGER DEFAULT 10
+-- ) RETURNS JSONB AS $$
+-- DECLARE
+--     result JSONB;
+--     v_offset INTEGER;
+-- BEGIN
+--     v_offset := (p_page - 1) * p_page_size;
 
-    WITH filtered_data AS (
-        SELECT 
-            a.numero_aviso, 
-            a.estado, 
-            a.numero_sap, 
-            u.nombre AS usuario_creador,
-            u.email AS email_usuario_creador,
-            c.nombre AS cliente,
-            c.ruc AS ruc_cliente,
-            a.moneda,
-            a.importe_total,
-            a.fecha_emision
-        FROM AvisoDebito a
-        JOIN Cliente c ON a.id_cliente = c.id
-        JOIN Usuario u ON a.id_usuario_creador = u.id
-        WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR a.estado = p_estado)
-          AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
-          AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
-          AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
-          AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
-          AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
-          AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
-          AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
-          AND (p_moneda IS NULL OR a.moneda = p_moneda)
-          AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
-          AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
-    )
-    SELECT jsonb_build_object(
-        'total_count', COUNT(*),
-        'current_page', p_page,
-        'page_size', p_page_size,
-        'data', (
-            SELECT jsonb_agg(row_to_json(fd))
-            FROM (
-                SELECT *
-                FROM filtered_data
-                ORDER BY fecha_emision DESC
-                LIMIT p_page_size OFFSET v_offset
-            ) fd
-        )
-    ) INTO result;
+--     WITH filtered_data AS (
+--         SELECT 
+--             a.numero_aviso, 
+--             a.estado, 
+--             a.numero_sap, 
+--             u.nombre AS usuario_creador,
+--             u.email AS email_usuario_creador,
+--             c.nombre AS cliente,
+--             c.ruc AS ruc_cliente,
+--             a.moneda,
+--             a.importe_total,
+--             a.fecha_emision
+--         FROM AvisoDebito a
+--         JOIN Cliente c ON a.id_cliente = c.id
+--         JOIN Usuario u ON a.id_usuario_creador = u.id
+--         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
+--           AND (p_estado IS NULL OR a.estado = p_estado)
+--           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
+--           AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
+--           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
+--           AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
+--           AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
+--           AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
+--           AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
+--           AND (p_moneda IS NULL OR a.moneda = p_moneda)
+--           AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
+--           AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
+--     )
+--     SELECT jsonb_build_object(
+--         'total_count', COUNT(*),
+--         'current_page', p_page,
+--         'page_size', p_page_size,
+--         'data', (
+--             SELECT jsonb_agg(row_to_json(fd))
+--             FROM (
+--                 SELECT *
+--                 FROM filtered_data
+--                 ORDER BY fecha_emision DESC
+--                 LIMIT p_page_size OFFSET v_offset
+--             ) fd
+--         )
+--     ) INTO result;
 
-    RETURN COALESCE(result, '{"total_count": 0, "current_page": p_page, "page_size": p_page_size, "data": []}'::jsonb);
-END;
-$$ LANGUAGE plpgsql;
+--     RETURN COALESCE(result, '{"total_count": 0, "current_page": p_page, "page_size": p_page_size, "data": []}'::jsonb);
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION search_aviso_debito(
@@ -283,15 +284,15 @@ BEGIN
         JOIN Cliente c ON a.id_cliente = c.id
         JOIN Usuario u ON a.id_usuario_creador = u.id
         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado) -- Comparación con 'todos' en minúsculas
+          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado)
           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
-          AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
+         AND (p_usuario_creador IS NULL OR unaccent(u.nombre) ILIKE '%' || unaccent(COALESCE(p_usuario_creador, '')) || '%')
           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
           AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
           AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
-          AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
+          AND (p_nombre_cliente IS NULL OR unaccent(c.nombre) ILIKE '%' || unaccent(COALESCE(p_nombre_cliente, '')) || '%')
           AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
-          AND (p_moneda IS NULL OR LOWER(p_moneda) = 'todas' OR a.moneda = p_moneda) -- Comparación con 'todas' en minúsculas
+          AND (p_moneda IS NULL OR LOWER(p_moneda) = 'todas' OR a.moneda = p_moneda)
           AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
           AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
     ) t;

@@ -10,12 +10,27 @@ class DebitNoticeService {
       email_usuario_creador,
       fecha_inicio,
       fecha_fin,
-      nombre_cliente,
+      cliente: nombre_cliente,
       ruc_cliente,
       moneda,
       importe_min,
       importe_max,
     } = params;
+
+    console.log({
+      numero_aviso,
+      estado,
+      numero_sap,
+      usuario_creador,
+      email_usuario_creador,
+      fecha_inicio,
+      fecha_fin,
+      nombre_cliente,
+      ruc_cliente,
+      moneda,
+      importe_min,
+      importe_max
+    })
 
     const result = await db
       .getPool()
