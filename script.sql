@@ -300,10 +300,9 @@ BEGIN
     v_offset := (p_page - 1) * p_page_size;
 
     WITH filtered_data AS (
-        SELECT s.*, c.nombre as nombre_cliente
-        FROM SolicitudAnticipo s
-        LEFT JOIN Cliente c ON s.id_cliente = c.id
-        WHERE p_numero_solicitud IS NULL OR s.numero_solicitud = p_numero_solicitud
+        SELECT *
+        FROM SolicitudAnticipo
+        WHERE p_numero_solicitud IS NULL OR numero_solicitud = p_numero_solicitud
     )
     SELECT jsonb_build_object(
         'total_count', (SELECT COUNT(*) FROM filtered_data),
@@ -420,6 +419,62 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION crear_aviso_completo(
+    p_aviso JSONB,
+    p_detalles JSONB[]
+) RETURNS INTEGER AS $$
+DECLARE
+    v_id_aviso INTEGER;
+    v_detalle JSONB;
+BEGIN
+    BEGIN
+        SELECT crear_aviso(
+            (p_aviso->>'id_cliente')::INTEGER,
+            p_aviso->>'moneda',
+            (p_aviso->>'tipo_cambio_moneda')::NUMERIC,
+            p_aviso->>'numero_aviso',
+            (p_aviso->>'fecha_emision')::DATE,
+            (p_aviso->>'importe_total')::NUMERIC,
+            p_aviso->>'estado',
+            p_aviso->>'numero_sap',
+            p_aviso->>'condicion_pago',
+            (p_aviso->>'id_usuario_modificador')::INTEGER,
+            (p_aviso->>'fecha_modificacion')::TIMESTAMP,
+            p_aviso->>'observaciones'
+        ) INTO v_id_aviso;
+        
+        IF p_detalles IS NOT NULL AND array_length(p_detalles, 1) IS NOT NULL THEN
+            FOREACH v_detalle IN ARRAY p_detalles
+            LOOP
+                PERFORM crear_detalle_aviso(
+                    v_id_aviso,
+                    (v_detalle->>'numero_linea')::INTEGER,
+                    v_detalle->>'tipo_concepto',
+                    v_detalle->>'codigo_concepto',
+                    v_detalle->>'descripcion_concepto',
+                    (v_detalle->>'cantidad')::NUMERIC,
+                    v_detalle->>'unidad_medida',
+                    (v_detalle->>'precio_unitario')::NUMERIC,
+                    (v_detalle->>'importe')::NUMERIC,
+                    v_detalle->>'centro_costo',
+                    (v_detalle->>'numero_solicitud_anticipo')::INTEGER,
+                    (v_detalle->>'fecha_servicio_desde')::DATE,
+                    (v_detalle->>'fecha_servicio_hasta')::DATE,
+                    v_detalle->>'observaciones'
+                );
+            END LOOP;
+        END IF;
+        
+        RETURN v_id_aviso;
+        
+    EXCEPTION
+        WHEN OTHERS THEN
+            RAISE EXCEPTION 'Error al crear aviso: %', SQLERRM;
+            RETURN NULL;
+    END;
+END;
+$$ LANGUAGE plpgsql;
 
 
 
