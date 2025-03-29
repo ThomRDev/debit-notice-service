@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS unaccent;
 CREATE TABLE Cliente (
     id SERIAL PRIMARY KEY,
     ruc VARCHAR(20) NOT NULL,
@@ -31,7 +32,7 @@ CREATE TABLE AvisoDebito (
     moneda VARCHAR(10),
     tipo_cambio_moneda NUMERIC(10,4),
     numero_aviso VARCHAR(50) UNIQUE,
-    fecha_emision DATE,
+    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     importe_total NUMERIC(15,2),
     estado VARCHAR(20) CHECK (estado IN ('BORRADOR', 'PENDIENTE', 'ANULADO', 'MIGRADO')),
     numero_sap VARCHAR(50),
@@ -116,74 +117,137 @@ INSERT INTO SolicitudAnticipo (
 (4, 'ANT-2025-013', '2025-05-24', 'Javier Ríos', 900.00, 'PEN', 'Evento Internacional', 'APROBADO'),
 (5, 'ANT-2025-014', '2025-06-02', 'Lucía Mendez', 400.00, 'PEN', 'Papelería', 'PENDIENTE');
 
-CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
-    p_numero_aviso TEXT DEFAULT NULL,
-    p_estado TEXT DEFAULT NULL,
-    p_numero_sap TEXT DEFAULT NULL,
-    p_usuario_creador TEXT DEFAULT NULL,
-    p_email_usuario_creador TEXT DEFAULT NULL,
-    p_fecha_desde DATE DEFAULT NULL,
-    p_fecha_hasta DATE DEFAULT NULL,
-    p_nombre_cliente TEXT DEFAULT NULL,
-    p_ruc_cliente TEXT DEFAULT NULL,
-    p_moneda TEXT DEFAULT NULL,
-    p_importe_min NUMERIC DEFAULT NULL,
-    p_importe_max NUMERIC DEFAULT NULL,
-    p_page INTEGER DEFAULT 1,
-    p_page_size INTEGER DEFAULT 10
-) RETURNS JSONB AS $$
-DECLARE
-    result JSONB;
-    v_offset INTEGER;
-BEGIN
-    v_offset := (p_page - 1) * p_page_size;
 
-    WITH filtered_data AS (
-        SELECT 
-            a.numero_aviso, 
-            a.estado, 
-            a.numero_sap, 
-            u.nombre AS usuario_creador,
-            u.email AS email_usuario_creador,
-            c.nombre AS cliente,
-            c.ruc AS ruc_cliente,
-            a.moneda,
-            a.importe_total,
-            a.fecha_emision
-        FROM AvisoDebito a
-        JOIN Cliente c ON a.id_cliente = c.id
-        JOIN Usuario u ON a.id_usuario_creador = u.id
-        WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR a.estado = p_estado)
-          AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
-          AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
-          AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
-          AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
-          AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
-          AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
-          AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
-          AND (p_moneda IS NULL OR a.moneda = p_moneda)
-          AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
-          AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
-    )
-    SELECT jsonb_build_object(
-        'total_count', COUNT(*),
-        'current_page', p_page,
-        'page_size', p_page_size,
-        'data', (
-            SELECT jsonb_agg(row_to_json(fd))
-            FROM (
-                SELECT *
-                FROM filtered_data
-                ORDER BY fecha_emision DESC
-                LIMIT p_page_size OFFSET v_offset
-            ) fd
-        )
-    ) INTO result;
+INSERT INTO AvisoDebito(
+    id_cliente,
+    moneda,
+    tipo_cambio_moneda,
+    numero_aviso,
+    fecha_emision,
+    importe_total,
+    estado,
+    numero_sap,
+    condicion_pago,
+    id_usuario_creador,
+    id_usuario_modificador,
+    fecha_creation,
+    fecha_modificacion,
+    observaciones
+) VALUES (
+    1,
+    'PEN',
+    3.57,
+    'AD-0001',
+    NOW(),
+    850.00,
+    'PENDIENTE',
+    '1234567890',
+    'CONTADO',
+    1,
+    1,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+), (
+    1,
+    'PEN',
+    3.57,
+    'AD-0002',
+    NOW(),
+    500.00,
+    'BORRADOR',
+    '1234567890',
+    'CONTADO',
+    1,
+    NULL,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+), (
+    2,
+    'PEN',
+    3.57,
+    'AD-0003',
+    NOW(),
+    750.00,
+    'MIGRADO',
+    '1234567890',
+    'CONTADO',
+    2,
+    2,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+);
 
-    RETURN COALESCE(result, '{"total_count": 0, "current_page": p_page, "page_size": p_page_size, "data": []}'::jsonb);
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
+--     p_numero_aviso TEXT DEFAULT NULL,
+--     p_estado TEXT DEFAULT NULL,
+--     p_numero_sap TEXT DEFAULT NULL,
+--     p_usuario_creador TEXT DEFAULT NULL,
+--     p_email_usuario_creador TEXT DEFAULT NULL,
+--     p_fecha_desde DATE DEFAULT NULL,
+--     p_fecha_hasta DATE DEFAULT NULL,
+--     p_nombre_cliente TEXT DEFAULT NULL,
+--     p_ruc_cliente TEXT DEFAULT NULL,
+--     p_moneda TEXT DEFAULT NULL,
+--     p_importe_min NUMERIC DEFAULT NULL,
+--     p_importe_max NUMERIC DEFAULT NULL,
+--     p_page INTEGER DEFAULT 1,
+--     p_page_size INTEGER DEFAULT 10
+-- ) RETURNS JSONB AS $$
+-- DECLARE
+--     result JSONB;
+--     v_offset INTEGER;
+-- BEGIN
+--     v_offset := (p_page - 1) * p_page_size;
+
+--     WITH filtered_data AS (
+--         SELECT 
+--             a.numero_aviso, 
+--             a.estado, 
+--             a.numero_sap, 
+--             u.nombre AS usuario_creador,
+--             u.email AS email_usuario_creador,
+--             c.nombre AS cliente,
+--             c.ruc AS ruc_cliente,
+--             a.moneda,
+--             a.importe_total,
+--             a.fecha_emision
+--         FROM AvisoDebito a
+--         JOIN Cliente c ON a.id_cliente = c.id
+--         JOIN Usuario u ON a.id_usuario_creador = u.id
+--         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
+--           AND (p_estado IS NULL OR a.estado = p_estado)
+--           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
+--           AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
+--           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
+--           AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
+--           AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
+--           AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
+--           AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
+--           AND (p_moneda IS NULL OR a.moneda = p_moneda)
+--           AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
+--           AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
+--     )
+--     SELECT jsonb_build_object(
+--         'total_count', COUNT(*),
+--         'current_page', p_page,
+--         'page_size', p_page_size,
+--         'data', (
+--             SELECT jsonb_agg(row_to_json(fd))
+--             FROM (
+--                 SELECT *
+--                 FROM filtered_data
+--                 ORDER BY fecha_emision DESC
+--                 LIMIT p_page_size OFFSET v_offset
+--             ) fd
+--         )
+--     ) INTO result;
+
+--     RETURN COALESCE(result, '{"total_count": 0, "current_page": p_page, "page_size": p_page_size, "data": []}'::jsonb);
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 
 CREATE OR REPLACE FUNCTION search_aviso_debito(
@@ -220,15 +284,15 @@ BEGIN
         JOIN Cliente c ON a.id_cliente = c.id
         JOIN Usuario u ON a.id_usuario_creador = u.id
         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado) -- Comparación con 'todos' en minúsculas
+          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado)
           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
-          AND (p_usuario_creador IS NULL OR u.nombre ILIKE '%' || p_usuario_creador || '%')
+         AND (p_usuario_creador IS NULL OR unaccent(u.nombre) ILIKE '%' || unaccent(COALESCE(p_usuario_creador, '')) || '%')
           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
           AND (p_fecha_desde IS NULL OR a.fecha_emision >= p_fecha_desde)
           AND (p_fecha_hasta IS NULL OR a.fecha_emision <= p_fecha_hasta)
-          AND (p_nombre_cliente IS NULL OR c.nombre ILIKE '%' || p_nombre_cliente || '%')
+          AND (p_nombre_cliente IS NULL OR unaccent(c.nombre) ILIKE '%' || unaccent(COALESCE(p_nombre_cliente, '')) || '%')
           AND (p_ruc_cliente IS NULL OR c.ruc ILIKE '%' || p_ruc_cliente || '%')
-          AND (p_moneda IS NULL OR LOWER(p_moneda) = 'todas' OR a.moneda = p_moneda) -- Comparación con 'todas' en minúsculas
+          AND (p_moneda IS NULL OR LOWER(p_moneda) = 'todas' OR a.moneda = p_moneda)
           AND (p_importe_min IS NULL OR a.importe_total >= p_importe_min)
           AND (p_importe_max IS NULL OR a.importe_total <= p_importe_max)
     ) t;
@@ -356,7 +420,8 @@ BEGIN
             resultado := jsonb_set(resultado, '{success}', resultado->'success' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
-                    'from', aviso.estado, 
+                    'from', aviso.estado,
+                    'numero_aviso', aviso.numero_aviso,
                     'to', estado_final, 
                     'mensaje', 'Cambio de estado permitido'
                 )));
@@ -366,6 +431,7 @@ BEGIN
                     'id', aviso.id, 
                     'from', aviso.estado, 
                     'to', estado_final, 
+                    'numero_aviso', aviso.numero_aviso,
                     'mensaje', 'Cambio de estado no permitido'
                 )));
         END IF;
@@ -476,5 +542,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_detail_aviso_debito(
+    p_numero_aviso TEXT
+) RETURNS JSONB AS $$
+DECLARE
+    aviso_completo JSONB;
+    detalle_aviso_debito JSONB;
+    result JSONB;
+BEGIN
+    SELECT row_to_json(aviso)::JSONB 
+    INTO aviso_completo
+    FROM (
+        SELECT a.*, u.nombre AS usuario_modificador, c.nombre AS cliente
+        FROM AvisoDebito a
+        JOIN Usuario u ON a.id_usuario_modificador = u.id
+        JOIN Cliente c ON a.id_cliente = c.id
+        WHERE a.numero_aviso = p_numero_aviso
+    ) aviso;
 
+    SELECT COALESCE(jsonb_agg(row_to_json(d)), '[]'::JSONB) 
+    INTO detalle_aviso_debito 
+    FROM ( 
+        SELECT * FROM DetalleAvisoDebito 
+        WHERE id_aviso_debito = (aviso_completo->>'id')::INT 
+    ) d;
+
+    SELECT jsonb_build_object(
+        'aviso_debito', aviso_completo,
+        'detalle_aviso_debito', detalle_aviso_debito
+    ) INTO result;
+    
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
 

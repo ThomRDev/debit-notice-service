@@ -17,6 +17,7 @@
     "dotenv": "^16.4.7",
     "env-var": "^7.5.0",
     "express": "^4.21.2",
+    "msw": "^2.7.3",
     "pg": "^8.14.1"
   },
   "devDependencies": {

@@ -21,6 +21,16 @@ class DebitNoticeController {
         return res.status(500).json({ error: error.message });
       });
   }
+
+  static getDebitNoticeByNumberAviso(req, res) {
+    return DebitNoticeService.getDebitNoticeByNumberAviso(req.params.numberAviso)
+      .then(result => {
+        return res.json(result);
+      })
+      .catch(error => {
+        return res.status(500).json({ error: error.message });
+      });
+  }
 }
 
 module.exports = { DebitNoticeController };
