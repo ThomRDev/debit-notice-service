@@ -180,6 +180,39 @@ INSERT INTO AvisoDebito(
     'Observaciones del aviso de débito'
 );
 
+
+INSERT INTO AvisoDebito(
+    id_cliente,
+    moneda,
+    tipo_cambio_moneda,
+    numero_aviso,
+    fecha_emision,
+    importe_total,
+    estado,
+    numero_sap,
+    condicion_pago,
+    id_usuario_creador,
+    id_usuario_modificador,
+    fecha_creation,
+    fecha_modificacion,
+    observaciones
+) VALUES (
+    2,
+    'PEN',
+    3.57,
+    'AD-0006',
+    NOW(),
+    750.00,
+    'MIGRADO',
+    '1234567890',
+    'CONTADO',
+    2,
+    2,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+);
+
 -- CREATE OR REPLACE FUNCTION search_aviso_debito_pagination(
 --     p_numero_aviso TEXT DEFAULT NULL,
 --     p_estado TEXT DEFAULT NULL,
@@ -464,7 +497,8 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION actualizar_estado_avisos(
     avisos JSONB, 
     estado_final TEXT,
-    usuario_modificador INTEGER
+    usuario_modificador INTEGER,
+    motivo TEXT DEFAULT NULL
 ) RETURNS VOID AS $$
 DECLARE
     aviso JSONB;
@@ -498,8 +532,8 @@ BEGIN
             WHERE id = aviso_id;
         END IF;
 
-        INSERT INTO LogAvisoDebito(id_aviso, fecha_gestion, usuario_gestion, estado)
-        VALUES (aviso_id, NOW(), usuario_modificador, estado_final);
+        INSERT INTO LogAvisoDebito(id_aviso, fecha_gestion, usuario_gestion, estado, motivo)
+        VALUES (aviso_id, NOW(), usuario_modificador, estado_final, motivo);
     END LOOP;
 END;
 $$ LANGUAGE plpgsql;

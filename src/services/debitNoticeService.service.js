@@ -48,7 +48,7 @@ class DebitNoticeService {
   }
 
   static async changeState(body) {
-    const { avisos, estado_final, usuario_modificador } = body;
+    const { avisos, estado_final, usuario_modificador, motivo } = body;
 
     const stateValidation = await db
       .getPool()
@@ -91,10 +91,11 @@ class DebitNoticeService {
 
     await db
       .getPool()
-      .query("SELECT * FROM actualizar_estado_avisos($1::JSONB, $2::text, $3::INTEGER)", [
+      .query("SELECT * FROM actualizar_estado_avisos($1::JSONB, $2::text, $3::INTEGER, $4)", [
         JSON.stringify(stateValidation.rows[0].validar_cambio_estado_avisos.success),
         estado_final,
         usuario_modificador,
+        motivo || null,
       ]);
     return stateValidation.rows[0].validar_cambio_estado_avisos;
   }
