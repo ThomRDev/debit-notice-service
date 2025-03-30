@@ -405,28 +405,29 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION validar_cambio_estado_avisos(
-    avisos_ids INTEGER[], 
+    avisos VARCHAR[], 
     estado_final TEXT
 ) RETURNS JSON AS $$
 DECLARE
     aviso RECORD;
-    resultado JSONB := jsonb_build_object('success', '[]', 'errors', '[]');
+    resultado JSONB := jsonb_build_object('success', jsonb_build_array(), 'errors', jsonb_build_array());
     estados_validos TEXT[] := ARRAY['BORRADOR', 'PENDIENTE', 'MIGRADO', 'ANULADO'];
 BEGIN
     IF estado_final NOT IN (SELECT UNNEST(estados_validos)) THEN
         RAISE EXCEPTION 'Estado final inválido: %', estado_final;
     END IF;
 
-    FOR aviso IN SELECT id, estado FROM AvisoDebito WHERE id = ANY(avisos_ids) LOOP
+    FOR aviso IN SELECT id, estado, numero_aviso FROM AvisoDebito WHERE numero_aviso = ANY(avisos) LOOP
         IF aviso.estado = 'ANULADO' THEN
             resultado := jsonb_set(resultado, '{errors}', resultado->'errors' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
-                    'from', aviso.estado,
-                    'numero_aviso', aviso.numero_aviso, 
+                    'numero_aviso', aviso.numero_aviso,
+                    'from', aviso.estado, 
                     'to', estado_final, 
-                    'mensaje', 'No se puede cambiar el estado de un aviso anulado'
-                )));
+                    'mensaje', 'No se puede cambiar el estado de un aviso anulado',
+                    'descripcion', format('El número de aviso %s no puede cambiar de %s a %s', aviso.numero_aviso, aviso.estado, estado_final)
+                )), true);
         ELSIF (aviso.estado = 'BORRADOR' AND estado_final = 'PENDIENTE') OR
               (aviso.estado = 'PENDIENTE' AND estado_final = 'MIGRADO') OR
               (aviso.estado = 'MIGRADO' AND estado_final = 'ANULADO') THEN
@@ -434,24 +435,29 @@ BEGIN
             resultado := jsonb_set(resultado, '{success}', resultado->'success' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
+                    'numero_aviso', aviso.numero_aviso,  
                     'from', aviso.estado,
                     'to', estado_final, 
-                    'mensaje', 'Cambio de estado permitido'
-                )));
+                    'mensaje', 'Cambio de estado permitido',
+                    'descripcion', format('El número de aviso %s se cambia de %s a %s', aviso.numero_aviso, aviso.estado, estado_final)
+                )), true);
         ELSE
             resultado := jsonb_set(resultado, '{errors}', resultado->'errors' || 
                 to_jsonb(jsonb_build_object(
                     'id', aviso.id, 
+                    'numero_aviso', aviso.numero_aviso,  
                     'from', aviso.estado, 
                     'to', estado_final, 
-                    'mensaje', 'Cambio de estado no permitido'
-                )));
+                    'mensaje', 'Cambio de estado no permitido',
+                    'descripcion', format('El número de aviso %s no puede cambiar de %s a %s', aviso.numero_aviso, aviso.estado, estado_final)
+                )), true);
         END IF;
     END LOOP;
 
     RETURN resultado;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 

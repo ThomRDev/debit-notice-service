@@ -8,6 +8,7 @@ class DebitNoticeController {
         return res.json(result);
       })
       .catch(error => {
+        console.log("🚀 ~ DebitNoticeController ~ getDebitNotice ~ error:", error)
         return res.status(500).json({ error: error.message });
       });
   }
@@ -18,6 +19,7 @@ class DebitNoticeController {
         return res.json(result);
       })
       .catch(error => {
+        console.log("🚀 ~ DebitNoticeController ~ changeState ~ error:", error)
         return res.status(500).json({ error: error.message });
       });
   }
@@ -28,6 +30,7 @@ class DebitNoticeController {
         return res.json(result);
       })
       .catch(error => {
+        console.log("🚀 ~ DebitNoticeController ~ getDebitNoticeByNumberAviso ~ error:", error)
         return res.status(500).json({ error: error.message });
       });
   }

@@ -1,3 +1,4 @@
+const e = require("express");
 const db = require("../config/database");
 
 class DebitNoticeService {
@@ -51,20 +52,20 @@ class DebitNoticeService {
 
     const stateValidation = await db
       .getPool()
-      .query("SELECT * FROM validar_cambio_estado_avisos($1, $2, $3)", [
+      .query("SELECT * FROM validar_cambio_estado_avisos($1::varchar[], $2::text)", [
         avisos,
-        estado_final,
-        usuario_modificador,
+        estado_final
       ]);
 
-    const allErrors = stateValidation.rows[0].success.length <= 0;
-    if (!allErrors) {
-      return stateValidation.rows[0]
+    const allErrors = stateValidation.rows[0].validar_cambio_estado_avisos.success.length <= 0;
+    if (allErrors) {
+      return stateValidation.rows[0].validar_cambio_estado_avisos
     }
 
-    const successIds = stateValidation.rows[0].success.map(
+    const successIds = stateValidation.rows[0].validar_cambio_estado_avisos.success.map(
       (item) => item.numero_aviso
     );
+    console.log("🚀 ~ DebitNoticeService ~ changeState ~ successIds:", successIds)
     if (estado_final === "MIGRADO") {
       const sapResponse = await fetch("https://sap.com/api/migrar", {
         method: "POST",
@@ -72,7 +73,7 @@ class DebitNoticeService {
       });
       const sapResponseData = await sapResponse.json();
 
-      stateValidation.rows[0].success.forEach((item) => {
+      stateValidation.rows[0].validar_cambio_estado_avisos.success.forEach((item) => {
         item.numero_sap = sapResponseData.find(
           (sap) => sap.numero_aviso === item.numero_aviso
         ).numero_sap;
@@ -86,14 +87,16 @@ class DebitNoticeService {
       });
     }
 
+    console.log(stateValidation.rows[0].validar_cambio_estado_avisos.success)
+
     await db
       .getPool()
-      .query("SELECT * FROM actualizar_estado_avisos($1, $2, $3)", [
-        stateValidation.rows[0].success,
+      .query("SELECT * FROM actualizar_estado_avisos($1::JSONB, $2::text, $3::INTEGER)", [
+        JSON.stringify(stateValidation.rows[0].validar_cambio_estado_avisos.success),
         estado_final,
         usuario_modificador,
       ]);
-    return stateValidation.rows[0];
+    return stateValidation.rows[0].validar_cambio_estado_avisos;
   }
 }
 
