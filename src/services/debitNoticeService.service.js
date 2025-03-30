@@ -44,7 +44,7 @@ class DebitNoticeService {
     const result = await db
       .getPool()
       .query("SELECT * FROM get_detail_aviso_debito($1)", [numberAviso || ""]);
-    return result.rows[0];
+    return result.rows[0].get_detail_aviso_debito;
   }
 
   static async changeState(body) {

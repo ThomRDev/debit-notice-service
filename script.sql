@@ -606,9 +606,9 @@ BEGIN
     SELECT row_to_json(aviso)::JSONB 
     INTO aviso_completo
     FROM (
-        SELECT a.*, u.nombre AS usuario_modificador, c.nombre AS cliente
+        SELECT a.*, u.nombre AS usuario_creador, c.nombre AS cliente,c.ruc,c.direccion,c.contacto
         FROM AvisoDebito a
-        JOIN Usuario u ON a.id_usuario_modificador = u.id
+        JOIN Usuario u ON a.id_usuario_creador = u.id
         JOIN Cliente c ON a.id_cliente = c.id
         WHERE a.numero_aviso = p_numero_aviso
     ) aviso;
