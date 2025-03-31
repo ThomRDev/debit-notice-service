@@ -99,6 +99,27 @@ class DebitNoticeService {
       ]);
     return stateValidation.rows[0].validar_cambio_estado_avisos;
   }
+
+  static async createDebitNotice(bodyDebit, bodyDebitDetail){
+    
+    try {
+      const {rows} = await db.getPool().query(
+        `SELECT crear_aviso_completo($1::JSONB, $2::JSONB[])`, 
+            [
+                JSON.stringify(bodyDebit), 
+                bodyDebitDetail.map(item => JSON.stringify(item))
+            ]
+        );
+        return rows;
+    } catch (error) {
+      console.error("Create Method fail");
+      throw {
+        message: "No se realizo la creacion del aviso de debito",
+        statusCode: error.statusCode
+      }
+      
+    }
+  }
 }
 
 module.exports = { DebitNoticeService };

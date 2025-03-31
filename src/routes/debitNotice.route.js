@@ -9,6 +9,7 @@ class DebitNoticeRoutes {
     router.get('/', DebitNoticeController.getDebitNotice);
     router.get('/:numberAviso', DebitNoticeController.getDebitNoticeByNumberAviso);
     router.put('/change-state', DebitNoticeController.changeState);
+    router.post('/create', DebitNoticeController.createDebitNotice);
     return router;
   }
 }
