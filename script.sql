@@ -650,14 +650,26 @@ CREATE OR REPLACE FUNCTION crear_detalle_aviso(
     p_observaciones text
 ) RETURNS void AS $$
 BEGIN
-    PERFORM setval('detalleavisodebito_id_seq', COALESCE((SELECT MAX(id) FROM DetalleAvisoDebito), 0) + 1, false);
+    CASE p_tipo_concepto
+        WHEN 'SERVICIO' THEN v_prefix := 'SERV-';
+        WHEN 'ANTICIPO' THEN v_prefix := 'ANT-';
+        WHEN 'OTROS' THEN v_prefix := 'OTRO-';
+        ELSE v_prefix := 'AD-';
+    END CASE;
+	v_importe := p_cantidad * p_precio_unitario;
+	SELECT COALESCE(MAX(numero_linea), 0) + 1 
+    INTO v_numero_linea
+    FROM DetalleAvisoDebito 
+    WHERE id_aviso_debito = p_id_aviso_debito;
+	PERFORM setval('detalleavisodebito_id_seq', COALESCE((SELECT MAX(id) FROM DetalleAvisoDebito), 0) + 1, false);
     INSERT INTO DetalleAvisoDebito (
         id_aviso_debito, numero_linea, tipo_concepto, codigo_concepto, descripcion_concepto,
         cantidad, unidad_medida, precio_unitario, importe, centro_costo,
         numero_solicitud_anticipo, fecha_servicio_desde, fecha_servicio_hasta, observaciones
     ) VALUES (
-        p_id_aviso_debito, p_numero_linea, p_tipo_concepto, p_codigo_concepto, p_descripcion_concepto,
-        p_cantidad, p_unidad_medida, p_precio_unitario, p_importe, p_centro_costo,
+        p_id_aviso_debito, v_numero_linea, p_tipo_concepto, 
+		v_prefix || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000'), p_descripcion_concepto,
+        p_cantidad, p_unidad_medida, p_precio_unitario, v_importe, p_centro_costo,
         p_numero_solicitud_anticipo, p_fecha_servicio_desde, p_fecha_servicio_hasta, p_observaciones
     );
 END;
