@@ -200,7 +200,22 @@ INSERT INTO AvisoDebito(
     2,
     'PEN',
     3.57,
-    'AD-0006',
+    'AD-0011',
+    NOW(),
+    750.00,
+    'MIGRADO',
+    '1234567890',
+    'CONTADO',
+    2,
+    2,
+    NOW(),
+    NOW(),
+    'Observaciones del aviso de débito'
+),(
+    2,
+    'PEN',
+    3.57,
+    'AD-0015',
     NOW(),
     750.00,
     'MIGRADO',
@@ -630,3 +645,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION buscar_clientes(filtro TEXT DEFAULT NULL)
+RETURNS SETOF Cliente AS $$
+BEGIN
+    RETURN QUERY
+    SELECT * FROM Cliente
+    WHERE 
+        filtro IS NULL OR filtro = ''
+        OR ruc ILIKE '%' || filtro || '%'
+        OR unaccent(nombre) ILIKE '%' || unaccent(filtro) || '%';
+END;
+$$ LANGUAGE plpgsql;
