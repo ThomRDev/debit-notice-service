@@ -34,6 +34,18 @@ class DebitNoticeController {
         return res.status(500).json({ error: error.message });
       });
   }
+
+  static createDebitNotice(req, res) {
+    const {bodyDebit, bodyDebitDetail} = req.body;
+
+    return DebitNoticeService.createDebitNotice(
+      bodyDebit, bodyDebitDetail
+    ).then((result) =>{
+      return res.status(201).json(result)
+    }). catch((err) =>{
+      return res.status(500).json({ error: err.message})
+    })
+  }
 }
 
 module.exports = { DebitNoticeController };

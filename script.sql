@@ -595,6 +595,74 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
+CREATE OR REPLACE FUNCTION crear_aviso(
+    p_id_cliente integer, 
+    p_moneda text, 
+    p_tipo_cambio_moneda numeric, 
+    p_numero_aviso text, 
+    p_fecha_emision date, 
+    p_importe_total numeric, 
+    p_estado text, 
+    p_numero_sap text, 
+    p_condicion_pago text, 
+    p_id_usuario_modificador integer, 
+    p_fecha_modificacion timestamp without time zone, 
+    p_observaciones text
+) RETURNS integer AS $$
+DECLARE
+    v_id_aviso INTEGER;
+BEGIN
+    PERFORM setval('avisodebito_id_seq', COALESCE((SELECT MAX(id) FROM AvisoDebito), 0) + 1, false);
+    INSERT INTO AvisoDebito (
+        id_cliente, moneda, tipo_cambio_moneda, numero_aviso, fecha_emision,
+        importe_total, estado, numero_sap, condicion_pago, id_usuario_modificador,
+        fecha_modificacion, observaciones
+    ) VALUES (
+        p_id_cliente, p_moneda, p_tipo_cambio_moneda, 
+        CASE
+            WHEN p_estado = 'BORRADOR' THEN 'TEMP-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000')
+			ELSE 'AD-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000')
+        END, 
+        p_fecha_emision,
+        p_importe_total, p_estado, p_numero_sap, p_condicion_pago, p_id_usuario_modificador,
+        p_fecha_modificacion, p_observaciones
+    ) RETURNING id INTO v_id_aviso;
+
+    RETURN v_id_aviso;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION crear_detalle_aviso(
+    p_id_aviso_debito integer, 
+    p_numero_linea integer, 
+    p_tipo_concepto text, 
+    p_codigo_concepto text, 
+    p_descripcion_concepto text, 
+    p_cantidad numeric, 
+    p_unidad_medida text, 
+    p_precio_unitario numeric, 
+    p_importe numeric, 
+    p_centro_costo text, 
+    p_numero_solicitud_anticipo integer, 
+    p_fecha_servicio_desde date, 
+    p_fecha_servicio_hasta date, 
+    p_observaciones text
+) RETURNS void AS $$
+BEGIN
+    PERFORM setval('detalleavisodebito_id_seq', COALESCE((SELECT MAX(id) FROM DetalleAvisoDebito), 0) + 1, false);
+    INSERT INTO DetalleAvisoDebito (
+        id_aviso_debito, numero_linea, tipo_concepto, codigo_concepto, descripcion_concepto,
+        cantidad, unidad_medida, precio_unitario, importe, centro_costo,
+        numero_solicitud_anticipo, fecha_servicio_desde, fecha_servicio_hasta, observaciones
+    ) VALUES (
+        p_id_aviso_debito, p_numero_linea, p_tipo_concepto, p_codigo_concepto, p_descripcion_concepto,
+        p_cantidad, p_unidad_medida, p_precio_unitario, p_importe, p_centro_costo,
+        p_numero_solicitud_anticipo, p_fecha_servicio_desde, p_fecha_servicio_hasta, p_observaciones
+    );
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE OR REPLACE FUNCTION get_detail_aviso_debito(
     p_numero_aviso TEXT
 ) RETURNS JSONB AS $$
@@ -629,4 +697,3 @@ BEGIN
     RETURN result;
 END;
 $$ LANGUAGE plpgsql;
-
