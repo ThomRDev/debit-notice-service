@@ -140,6 +140,24 @@ class DebitNoticeService {
 
     }
   }
+  static async putDevitNotice(params,body) {
+    try {
+      const { id } = params;
+      const { id_cliente, estado, observaciones, id_usuario_modificador } = body;
+      const { rows } = await db.getPool().query(
+        "SELECT modificar_aviso($1, $2, $3, $4, $5) AS resultado",
+        [id, id_cliente, estado, observaciones,id_usuario_modificador]
+      );
+      console.log(rows,id,id_cliente, estado, observaciones, id_usuario_modificador)
+      return rows[0];
+    } catch (error) {
+      throw {
+        message: "No se realizo la modificacion del aviso",
+        statusCode: error.statusCode
+      }
+
+    }
+  }
 }
 
 module.exports = { DebitNoticeService };

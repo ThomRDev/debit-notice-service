@@ -736,3 +736,42 @@ BEGIN
         OR unaccent(nombre) ILIKE '%' || unaccent(filtro) || '%';
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.modificar_aviso(p_id_aviso INTEGER, p_id_cliente INTEGER, p_estado TEXT, p_observaciones text, p_id_usuario_modificador INTEGER)
+	RETURNS text
+ LANGUAGE plpgsql
+AS $function$
+	BEGIN
+		UPDATE AvisoDebito
+		SET
+			id_cliente = p_id_cliente,
+			estado = p_estado,
+			observaciones = p_observaciones,
+			id_usuario_modificador = p_id_usuario_modificador,
+			numero_aviso = CASE 
+            	WHEN p_estado = 'PENDIENTE' AND numero_aviso LIKE 'TEMP-%' 
+            		THEN 'AD-' || SUBSTRING(numero_aviso FROM 6)
+				WHEN p_estado = 'BORRADOR' AND numero_aviso NOT LIKE 'TEMP-%' 
+                	THEN 'TEMP-' || SUBSTRING(numero_aviso FROM 4)  
+            	ELSE numero_aviso 
+        	END
+		WHERE id = p_id_aviso;
+		RETURN 'Aviso de débito actualizado correctamente';
+	END;
+$function$
+;
+
+
+CREATE OR REPLACE FUNCTION public.generar_numero_temporal()
+ RETURNS text
+ LANGUAGE plpgsql
+AS $function$
+DECLARE v_numero_temporal TEXT;
+	BEGIN
+		v_numero_temporal := 'TEMP-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000');
+    	RETURN v_numero_temporal;
+	END;
+$function$
+;
+
+ALTER FUNCTION public.generar_numero_temporal() OWNER TO db_owner;

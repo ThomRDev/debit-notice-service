@@ -57,6 +57,16 @@ class DebitNoticeController {
       return res.status(500).json({ error: err.message})
     })
   }
+
+  static putDevitNotice(req, res) {
+    return DebitNoticeService.putDevitNotice(req.params, req.body)
+    .then((result) =>{
+      return res.status(200).json(result)
+    }). catch((err) =>{
+      console.log(err)
+      return res.status(500).json({ error: err.message})
+    })
+  }
 }
 
 module.exports = { DebitNoticeController };

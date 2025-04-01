@@ -11,6 +11,7 @@ class DebitNoticeRoutes {
     router.put('/change-state', DebitNoticeController.changeState);
     router.post('/create', DebitNoticeController.createDebitNotice);
     router.get('/create/number', DebitNoticeController.createNumTemp);
+    router.put('/update/:id', DebitNoticeController.putDevitNotice);
     return router;
   }
 }
