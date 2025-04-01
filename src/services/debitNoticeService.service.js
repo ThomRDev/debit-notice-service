@@ -104,7 +104,8 @@ class DebitNoticeService {
     
     try {
       bodyDebit['id_cliente'] = bodyDebit['cliente'];
-      console.log(bodyDebit, bodyDebitDetail)
+      bodyDebit['importe_total'] = bodyDebit['importe'];
+      console.log(bodyDebit.importe_total, bodyDebit, bodyDebitDetail)
       const {rows} = await db.getPool().query(
         `SELECT crear_aviso_completo($1::JSONB, $2::JSONB[])`, 
             [
@@ -117,6 +118,23 @@ class DebitNoticeService {
       console.error("Create Method fail");
       throw {
         message: "No se realizo la creacion del aviso de debito",
+        statusCode: error.statusCode
+      }
+      
+    }
+  }
+
+  static async createNumTemp(){
+    try {
+      const {rows} = await db.getPool().query(
+        "SELECT generar_numero_temporal()"
+        );
+        console.log(rows)
+        return rows[0];
+    } catch (error) {
+      console.error("Create Method fail");
+      throw {
+        message: "No se realizo la creacion del numero",
         statusCode: error.statusCode
       }
       

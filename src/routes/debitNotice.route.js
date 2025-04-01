@@ -10,6 +10,7 @@ class DebitNoticeRoutes {
     router.get('/:numberAviso', DebitNoticeController.getDebitNoticeByNumberAviso);
     router.put('/change-state', DebitNoticeController.changeState);
     router.post('/create', DebitNoticeController.createDebitNotice);
+    router.get('/create/number', DebitNoticeController.createNumTemp);
     return router;
   }
 }
