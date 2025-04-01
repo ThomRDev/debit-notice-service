@@ -103,6 +103,8 @@ class DebitNoticeService {
   static async createDebitNotice(bodyDebit, bodyDebitDetail){
     
     try {
+      bodyDebit['id_cliente'] = bodyDebit['cliente'];
+      console.log(bodyDebit, bodyDebitDetail)
       const {rows} = await db.getPool().query(
         `SELECT crear_aviso_completo($1::JSONB, $2::JSONB[])`, 
             [
