@@ -47,6 +47,16 @@ class DebitNoticeController {
       return res.status(500).json({ error: err.message})
     })
   }
+
+  static createNumTemp(req, res) {
+    return DebitNoticeService.createNumTemp(
+    ).then((result) =>{
+      return res.status(201).json(result)
+    }). catch((err) =>{
+      console.log(err)
+      return res.status(500).json({ error: err.message})
+    })
+  }
 }
 
 module.exports = { DebitNoticeController };
