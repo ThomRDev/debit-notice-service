@@ -74,7 +74,7 @@ class DebitNoticeService {
       const sapResponseData = await sapResponse.json();
 
       stateValidation.rows[0].validar_cambio_estado_avisos.success.forEach((item) => {
-        item.numero_sap = sapResponseData.find(
+        item.numero_sap = sapResponseData.data.find(
           (sap) => sap.numero_aviso === item.numero_aviso
         ).numero_sap;
       });
@@ -87,7 +87,7 @@ class DebitNoticeService {
       });
     }
 
-    console.log(stateValidation.rows[0].validar_cambio_estado_avisos.success)
+    console.log('enviando', stateValidation.rows[0].validar_cambio_estado_avisos.success)
 
     await db
       .getPool()
@@ -100,26 +100,26 @@ class DebitNoticeService {
     return stateValidation.rows[0].validar_cambio_estado_avisos;
   }
 
-  static async createDebitNotice(bodyDebit, bodyDebitDetail){
-    
+  static async createDebitNotice(bodyDebit, bodyDebitDetail) {
+
     try {
       bodyDebit['id_cliente'] = bodyDebit['cliente'];
       console.log(bodyDebit, bodyDebitDetail)
-      const {rows} = await db.getPool().query(
-        `SELECT crear_aviso_completo($1::JSONB, $2::JSONB[])`, 
-            [
-                JSON.stringify(bodyDebit), 
-                bodyDebitDetail.map(item => JSON.stringify(item))
-            ]
-        );
-        return rows;
+      const { rows } = await db.getPool().query(
+        `SELECT crear_aviso_completo($1::JSONB, $2::JSONB[])`,
+        [
+          JSON.stringify(bodyDebit),
+          bodyDebitDetail.map(item => JSON.stringify(item))
+        ]
+      );
+      return rows;
     } catch (error) {
       console.error("Create Method fail");
       throw {
         message: "No se realizo la creacion del aviso de debito",
         statusCode: error.statusCode
       }
-      
+
     }
   }
 }

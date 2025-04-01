@@ -332,7 +332,7 @@ BEGIN
         JOIN Cliente c ON a.id_cliente = c.id
         JOIN Usuario u ON a.id_usuario_creador = u.id
         WHERE (p_numero_aviso IS NULL OR a.numero_aviso ILIKE '%' || p_numero_aviso || '%')
-          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR a.estado = p_estado)
+          AND (p_estado IS NULL OR LOWER(p_estado) = 'todos' OR LOWER(a.estado) = LOWER(p_estado))
           AND (p_numero_sap IS NULL OR a.numero_sap ILIKE '%' || p_numero_sap || '%')
          AND (p_usuario_creador IS NULL OR unaccent(u.nombre) ILIKE '%' || unaccent(COALESCE(p_usuario_creador, '')) || '%')
           AND (p_email_usuario_creador IS NULL OR u.email ILIKE '%' || p_email_usuario_creador || '%')
@@ -518,24 +518,24 @@ CREATE OR REPLACE FUNCTION actualizar_estado_avisos(
 DECLARE
     aviso JSONB;
     aviso_id INTEGER;
-    numero_sap TEXT;
+    p_numero_sap TEXT;
 BEGIN
     FOR aviso IN SELECT * FROM jsonb_array_elements(avisos) LOOP
         aviso_id := (aviso->>'id')::INTEGER;
-        numero_sap := aviso->>'numero_sap';
+        p_numero_sap := aviso->>'numero_sap';
 
         IF aviso_id IS NULL THEN
             RAISE EXCEPTION 'Datos inválidos en el JSON: %', aviso;
         END IF;
 
         IF estado_final IN ('MIGRADO')  THEN
-            IF numero_sap IS NULL THEN
+            IF p_numero_sap IS NULL THEN
                 RAISE EXCEPTION 'El número SAP es obligatorio cuando el estado es MIGRADO para el aviso %', aviso_id;
             END IF;
 
             UPDATE AvisoDebito 
             SET estado = estado_final, 
-                numero_sap = numero_sap,
+                numero_sap = p_numero_sap,
                 fecha_modificacion = NOW(),
                 id_usuario_modificador = usuario_modificador
             WHERE id = aviso_id;
