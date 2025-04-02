@@ -153,7 +153,7 @@ class DebitNoticeService {
     } catch (error) {
       throw {
         message: "No se realizo la modificacion del aviso",
-        statusCode: error.statusCode
+        statusCode: error.message
       }
 
     }

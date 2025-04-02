@@ -737,17 +737,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION public.modificar_aviso(p_id_aviso INTEGER, p_id_cliente INTEGER, p_estado TEXT, p_observaciones text, p_id_usuario_modificador INTEGER)
+CREATE OR REPLACE FUNCTION public.modificar_aviso(p_id_aviso INTEGER, p_id_cliente INTEGER DEFAULT NULL, p_estado TEXT DEFAULT NULL, p_observaciones text DEFAULT NULL, p_id_usuario_modificador INTEGER DEFAULT NULL)
 	RETURNS text
  LANGUAGE plpgsql
 AS $function$
 	BEGIN
 		UPDATE AvisoDebito
 		SET
-			id_cliente = p_id_cliente,
-			estado = p_estado,
-			observaciones = p_observaciones,
-			id_usuario_modificador = p_id_usuario_modificador,
+			id_cliente = COALESCE(p_id_cliente, id_cliente), 
+            estado = COALESCE(p_estado, estado), 
+            observaciones = COALESCE(p_observaciones, observaciones), 
+            id_usuario_modificador = COALESCE(p_id_usuario_modificador, id_usuario_modificador),
 			numero_aviso = CASE 
             	WHEN p_estado = 'PENDIENTE' AND numero_aviso LIKE 'TEMP-%' 
             		THEN 'AD-' || SUBSTRING(numero_aviso FROM 6)
