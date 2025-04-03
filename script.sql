@@ -611,42 +611,33 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-CREATE OR REPLACE FUNCTION crear_aviso(
-    p_id_cliente integer, 
-    p_moneda text, 
-    p_tipo_cambio_moneda numeric, 
-    p_numero_aviso text, 
-    p_fecha_emision date, 
-    p_importe_total numeric, 
-    p_estado text, 
-    p_numero_sap text, 
-    p_condicion_pago text, 
-    p_id_usuario_modificador integer, 
-    p_fecha_modificacion timestamp without time zone, 
-    p_observaciones text
-) RETURNS integer AS $$
+CREATE OR REPLACE FUNCTION public.crear_aviso(p_id_cliente integer, p_moneda text, p_tipo_cambio_moneda numeric, p_numero_aviso text, p_fecha_emision date, p_importe_total numeric, p_estado text, p_numero_sap text, p_condicion_pago text, p_id_usuario_creador integer, p_fecha_modificacion timestamp without time zone, p_observaciones text)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
 DECLARE
     v_id_aviso INTEGER;
 BEGIN
-    PERFORM setval('avisodebito_id_seq', COALESCE((SELECT MAX(id) FROM AvisoDebito), 0) + 1, false);
+	PERFORM setval('avisodebito_id_seq', COALESCE((SELECT MAX(id) FROM AvisoDebito), 0) + 1, false);
     INSERT INTO AvisoDebito (
         id_cliente, moneda, tipo_cambio_moneda, numero_aviso, fecha_emision,
-        importe_total, estado, numero_sap, condicion_pago, id_usuario_modificador,
+        importe_total, estado, numero_sap, condicion_pago, id_usuario_creador,
         fecha_modificacion, observaciones
     ) VALUES (
         p_id_cliente, p_moneda, p_tipo_cambio_moneda, 
-        CASE
-            WHEN p_estado = 'BORRADOR' THEN 'TEMP-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000')
-			ELSE 'AD-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000')
-        END, 
-        p_fecha_emision,
-        p_importe_total, p_estado, p_numero_sap, p_condicion_pago, p_id_usuario_modificador,
+		CASE
+			WHEN p_estado = 'BORRADOR' THEN 'TEMP-' || TO_CHAR(currval('avisodebito_id_seq'), 'FM0000')
+			ELSE 'AD-' || TO_CHAR(currval('avisodebito_id_seq'), 'FM0000')
+		END, 
+		p_fecha_emision,
+        p_importe_total, p_estado, p_numero_sap, p_condicion_pago, p_id_usuario_creador,
         p_fecha_modificacion, p_observaciones
     ) RETURNING id INTO v_id_aviso;
 
     RETURN v_id_aviso;
 END;
-$$ LANGUAGE plpgsql;
+$function$
+;
 
 CREATE OR REPLACE FUNCTION crear_detalle_aviso(
     p_id_aviso_debito integer, 
@@ -766,12 +757,11 @@ CREATE OR REPLACE FUNCTION public.generar_numero_temporal()
  RETURNS text
  LANGUAGE plpgsql
 AS $function$
-DECLARE v_numero_temporal TEXT;
+DECLARE v_numero_temporal TEXT; v_id INTEGER;
 	BEGIN
-		v_numero_temporal := 'TEMP-' || TO_CHAR(nextval('avisodebito_id_seq'), 'FM0000');
+		SELECT COALESCE(MAX(id), 0) + 1 INTO v_id FROM AvisoDebito;
+    	v_numero_temporal := 'TEMP-' || TO_CHAR(v_id, 'FM0000');
     	RETURN v_numero_temporal;
 	END;
 $function$
 ;
-
-ALTER FUNCTION public.generar_numero_temporal() OWNER TO db_owner;
