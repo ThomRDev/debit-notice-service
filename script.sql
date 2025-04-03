@@ -739,6 +739,7 @@ AS $function$
             estado = COALESCE(p_estado, estado), 
             observaciones = COALESCE(p_observaciones, observaciones), 
             id_usuario_modificador = COALESCE(p_id_usuario_modificador, id_usuario_modificador),
+            fecha_modificacion = CURRENT_TIMESTAMP,
 			numero_aviso = CASE 
             	WHEN p_estado = 'PENDIENTE' AND numero_aviso LIKE 'TEMP-%' 
             		THEN 'AD-' || SUBSTRING(numero_aviso FROM 6)
